@@ -113,10 +113,12 @@ class PointOfSale extends Page
         \Log::info('Payment process triggered', ['type' => $type]);
 
         if ($type === 'cash') {
-            $this->saveTransaction('cash');
-            $this->dispatch('notify', title: 'Transaction Success');
-            $this->cart = [];
+            $this->dispatch('open-modal', id: 'cash-payment');
             return;
+            // $this->saveTransaction('cash');
+            // $this->dispatch('notify', title: 'Transaction Success');
+            // $this->cart = [];
+            // return;
         }
 
         Config::$serverKey = config('midtrans.server_key');
@@ -137,6 +139,32 @@ class PointOfSale extends Page
         \Log::info('Snap Token', ['token' => $snapToken]);
 
         $this->dispatch('snapTokenRecieved', token: $snapToken);
+    }
+
+    public function cashTransaction(string $type)
+    {
+        if ($type === 'ya') {
+            $this->dispatch('close-modal', id: 'cash-payment');
+            $this->dispatch('open-modal', id: 'scan');
+            return;
+        } else {
+            $this->saveTransaction('cash');
+            $this->dispatch('notify', title: 'Transaction Success');
+            $this->cart = [];
+            return;
+        }
+    }
+
+    public function processCash()
+    {
+        $this->saveTransaction('cash');
+        $this->dispatch('notify', title: 'Transaction Success');
+        $this->cart = [];
+        return;
+    }
+
+    public function closeScanModal() {
+        $this->dispatch('close-modal', id: 'scan');
     }
 
     public function saveTransaction(string $paymentType, string $status = 'paid', ?string $orderId = null)
@@ -167,7 +195,7 @@ class PointOfSale extends Page
             ->title('Transaction Created Successfully')
             ->success()
             ->send();
-            
+
         return redirect('admin/point-of-sale');
     }
 }

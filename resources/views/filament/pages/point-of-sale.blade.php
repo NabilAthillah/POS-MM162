@@ -73,6 +73,34 @@
         </div>
     </div>
 
+    <x-filament::modal id="cash-payment" :close-button="true" :close-by-escaping="true" :close-by-clicking-away="true">
+        <x-slot name="heading">
+            Apakah anda ingin mengecek keaslian uang?
+        </x-slot>
+        <x-filament::button color="success" wire:click="cashTransaction('ya')">
+            Ya
+        </x-filament::button>
+        <x-filament::button color="danger" wire:click="cashTransaction('tidak')">
+            Tidak
+        </x-filament::button>
+    </x-filament::modal>
+
+    <x-filament::modal id="scan" :close-button="true" :close-by-escaping="true" :close-by-clicking-away="true">
+        <x-slot name="heading">
+            Input gambar uangnya
+        </x-slot>
+        <div>
+            <input type="file" name="image" id="image" accept="image/*">
+            <div id="result" class="mt-4 text-sm text-gray-700"></div>
+        </div>
+        <x-filament::button color="success" wire:click="processCash()">
+            Lanjutkan
+        </x-filament::button>
+        <x-filament::button color="gray" wire:click="closeScanModal()">
+            Cancel
+        </x-filament::button>
+    </x-filament::modal>
+
     @push('scripts')
         <script src="https://app.sandbox.midtrans.com/snap/snap.js"
             data-client-key="{{ config('midtrans.client_key') }}"></script>
@@ -92,7 +120,41 @@
                         alert('Kamu menutup modal tanpa menyelesaikan pembayaran.');
                     }
                 })
-            })
+            });
+
+            document.addEventListener('DOMContentLoaded', function () {
+                const input = document.getElementById('image');
+                const resultDiv = document.getElementById('result');
+
+                input.addEventListener('change', async function () {
+                    const file = input.files[0];
+                    if (!file) return;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    resultDiv.innerText = 'Memproses...';
+
+                    try {
+                        const response = await fetch('http://localhost:8080/predict', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.status != 200) {
+                            throw new Error('Server error');
+                        }
+
+                        const data = await response.json();
+                        resultDiv.innerHTML = `
+                                    <strong>Hasil:</strong> ${data.label}<br>
+                                `;
+                    } catch (error) {
+                        console.error(error);
+                        resultDiv.innerText = 'Terjadi kesalahan saat mengirim gambar.';
+                    }
+                });
+            });
         </script>
     @endpush
 </x-filament-panels::page>
